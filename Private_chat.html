@@ -1,0 +1,79 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Private Chat</title>
+</head>
+<!-- =onload= run when the page opens, onunload= when closed     -->
+<body onload="PrivateOpen()" onunload="ChatClosed()"></body>
+<p>
+    <type=text style="font-size: 24px; font-weight: bold; color: blue;" ; id="Heading"> Private Chat!
+        <!--Text box- message send to server  value="Type here..."     -->
+        <p><input type=text size="99" id="myText" placeholder="Type here..." < /p>
+            <!-- onClick="window.parent.sendPrivate()"  -->
+            <p> <button onClick="sendPrivate()"> Send the message</button>   
+                  <!-- TextBox for all messages      -->
+                 <div id="scrollableMessages" style="max-height: 900px; overflow-y: auto; border: 1px solid #ccc;">
+                    <p type="text"  style="font-size:larger ;" id="AllText">All the messages</p>
+                </div>
+
+<!-- ===========================JavaScript============================================  -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.1/socket.io.js"></script>
+<script>
+const socket = io("http://10.0.0.200:8080");
+var flag = 3; // Private chat
+parentNickName =""
+toNickName =""
+
+//=========================================================================
+// Emmitate clicking the "Send the Message" by pressing "Enter" button
+document.addEventListener("keydown", function(event) {
+        // Check if "Enter" key is pressed
+        if (event.key === "Enter") {
+            event.preventDefault(); // Prevent any default action, such as form submission
+            sendPrivate(); // Call the send message function
+        }  });
+
+//SEND messages TO Server======================================================
+function sendPrivate() {
+    //alert(myText.value)
+    socket.emit("message", String(flag) + parentNickName + " to: " + toNickName + " :    " + myText.value);
+    myText.value = ""     
+        }
+
+function PrivateOpen(){
+    //Get the sender-nick from parent window
+    parentNickName = window.opener ? window.opener.nickName.value : "Defaul Source Name";
+    //Get the destination-nick from parent window
+    toNickName = window.opener ? window.opener.current_private_nick : "Defaul destination Name";
+    //Concantinating Heading for private chat page
+    Heading.innerText= "Private chat. From: " + parentNickName + "  to: " + toNickName  
+    socket.emit("message", "4" + parentNickName + " to: " + toNickName);
+}
+
+ //GET messages FROM server==========================================================
+ socket.on("message", function(data) {
+       //private chat                         //|| data.substring(0,1) == "4" 
+       prefix = "3"+ parentNickName + " to: " + toNickName;
+       opponent_prefix = "3"+ toNickName  + " to: " + parentNickName;
+    if (data.substring(0, prefix.length) == prefix || data.substring(0, opponent_prefix.length) == opponent_prefix){
+        line = document.createElement("p");
+        line.innerText = data.substring(1) //Writes to the text box
+        
+        if (data.substring(0, opponent_prefix.length) === opponent_prefix) {
+            line.style.color = "blue";}
+        //AllText.appendChild(line); //Adds text to buttom                            
+        AllText.insertAdjacentElement("afterbegin", line); //Adds text to Head
+    }
+});
+
+
+        
+        </script>
+</body>
+
+</html>
