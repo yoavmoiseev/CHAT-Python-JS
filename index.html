@@ -54,6 +54,13 @@
         <!-- TextBox with nickName    value="NickName..." -->
         <input type="text" placeholder="NickName... without spaces" onblur="freezNickName()" style="font-size:larger ;" id="nickName">
 
+        <!-- TextBox with Password    -->
+        <input type="text" placeholder="Create Password" 
+        oninput="HidePassword(event)"  onblur="freezPassword()" 
+        style="font-size:larger; margin-left:20px;"
+         id="passWord">
+
+
         <!-- Send Message button    -->
         <p> <button  onClick="sendMsg()" style="font-size:larger ;" id="SendMsgButton">Send the message</button>  
             <!--Text box- message send to server  value="Type here..."     -->
@@ -95,8 +102,27 @@
         current_private_nick = ""
         let interval_arr = [];
         const MaxLineSize = 170
+        let Password = ""
 
         //============================= FUNCTIONS  ==================================
+        //===========================================================================
+        function HidePassword(){
+            //!!!!!!!!!!!to be continue!!!!!!!!!!!
+            // backSpace- Delete chars?????!!!!!!!!
+            //alert(passWord.value)
+            if (event.inputType === 'deleteContentBackward') {
+                Password = Password.slice(0, -1); // Remove the last character from Password
+            } else {
+            Password = Password + passWord.value.substring(passWord.value.length - 1, passWord.value.length);
+            passWord.value = passWord.value.substring(0, passWord.value.length - 1) + "*"
+        }
+        }
+        //===========================================================================
+        function freezPassword(){
+            if (passWord.value != "")
+            passWord.disabled = true
+        }
+
         //===========================================================================
         //the nickName texBox will be locked after the correct nickName inserted
         function freezNickName() {
@@ -167,17 +193,13 @@
         }
     }
 
-        //============================================================================================
-
-
-
         //=========================================================================
         //closes privet windows when main chat closed
         function ChatClosed() {
             for (let i = 0; i < privateWindows.length; i++)
                 privateWindows[i].close()
         }
-
+        //==============================================================================
         // Emmitate clicking the "Send the Message" by pressing "Enter" button
         document.addEventListener("keydown", function(event) {
         // Check if "Enter" key is pressed and that the SendButtot enabled-SPAM Blocking
@@ -191,19 +213,23 @@
         //SEND messages TO Server======================================================
         function sendMsg() {
             //  nickName text-box disabled, meanning that nick name imputed
-            if (nickName.disabled == true ) 
+            if (nickName.disabled == true  && passWord.disabled == true) 
             {
                 if (myText.value.length >=MaxLineSize){
                     alert("This message is too long!!!")
                 }
 
             if (SendMsgButton.disabled == false && myText.value.length < MaxLineSize){
-                    socket.emit("message", String(flag) + nickName.value + " :    " + myText.value);
+                if(flag == 2){
+                    socket.emit("message", String(flag) + nickName.value + " : " + Password + " :    " + myText.value);
+                } 
+                else{
+                    socket.emit("message", String(flag) + nickName.value + " :    " + myText.value);}
                     flag = 1;
                     myText.value = ""
                 }
             } else{
-                alert("Input Valid nickName") }
+                alert("Input Valid nickName and password") }
 
                 //block spumming, lock the send button fo several seconds,sleep function
                 SendMsgButton.disabled = true
@@ -243,6 +269,18 @@
 
         //GET messages FROM server==========================================================
         socket.on("message", function(data) {
+            // "This user aready exist! The Password is wrong"
+            if (data == "Wrong Password")
+            {
+                alert("This user aready exist! The Password is wrong")
+                nickName.value = ""
+                passWord.value = ""
+                passWord.disabled = false
+                nickName.disabled = false
+                flag = 2
+                Password = ""
+            }
+
             //discard private chat
             if (data.substring(0,1) == "2" || data.substring(0,1) == "1" ){
                 line = document.createElement("p");

@@ -9,6 +9,7 @@ import socketio
 
 # Creating Lists
 SocketList = []
+UsersList = []
 
 # containing all the messages from all users
 MessagesList = []
@@ -50,14 +51,35 @@ app.router.add_get('/prChat', privateChat)
 ## event we wish to listen out for
 @sio.on('message')
 async def print_message(sid, message):
-    nickname = message[1:message.find(" ")]
+    nicknameDelimiter = " :"
+    nickname = message[1:message.find(nicknameDelimiter)]
+    startPosition= len(nickname) + len(nicknameDelimiter) + 2 # message index and space before the password
+    password = message[startPosition : message.find(" :", startPosition)]
+    
     # Building List of clients on base of SocketID, started above- after "import"----------------------------
-    #  check the first item of every tuple in list
-    if all(str(sid) != item[0] for item in SocketList):
-        SocketList.append([str(sid), nickname])
-        print(nickname + ", entered to the chat. Time:" + time.asctime())
-        # for debugging
-        print(SocketList)
+    if message[0] == "2": # 2: new user entered
+        #  check the first item of every tuple in list
+        #     not in the list
+        if all(nickname != item[0] for item in UsersList):
+            UsersList.append([nickname, password])
+            print(nickname + ", entered to the chat. Time:" + time.asctime())
+            # for debugging
+            print(UsersList)
+        else: #the nickname already in list
+            for item in UsersList:
+                if (item[0]==nickname):# find this user
+                    if (item[1] == password): # check the password is correct
+                        print("Come In!")
+                    else:
+                        print("Wrong Password", message)
+                        ## back to the client
+                        await sio.emit('message', "Wrong Password", to=sid)
+                        return
+    
+    # first message
+    if(message[0] == "2"):
+        message = message.replace(nicknameDelimiter + " " + password,"",1) #remove the password
+    print(message)
 
     # Sends chat history to new clients
     if (message[0] == "2" or message[0] == "4"):
